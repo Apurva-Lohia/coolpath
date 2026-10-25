@@ -1,0 +1,10 @@
+{
+  "id": "15c4713a688a48fcb604fc343118af05",
+  "title": "Trees",
+  "url": "https://services1.arcgis.com/cNVyNtjGVZybOQWZ/arcgis/rest/services/Trees/FeatureServer",
+  "licenseInfo": "<a href='https://creativecommons.org/licenses/by/4.0/' rel='nofollow ugc'><img alt='Creative Commons License' src='https://i.creativecommons.org/l/by/4.0/80x15.png' /></a> <img alt='[Open Data]' src='https://cityofsydney.maps.arcgis.com/sharing/rest/content/items/bea5342b1f1d44d2966af23d9ee27b86/data' />",
+  "accessInformation": "City of Sydney",
+  "description": "<p>This dataset contains the location of trees in the City of Sydney including tree type, species, common name, height, canopy, status, age and DHB.</p>",
+  "verifiedAt": "2026-10-25",
+  "source": "https://www.arcgis.com/sharing/rest/content/items/15c4713a688a48fcb604fc343118af05?f=json"
+}

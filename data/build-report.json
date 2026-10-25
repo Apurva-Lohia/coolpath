@@ -1,0 +1,124 @@
+{
+  "nodes": 6315,
+  "edges": 7206,
+  "trees": 10845,
+  "components": [
+    6315,
+    42,
+    32,
+    15,
+    13,
+    12,
+    9,
+    9,
+    8,
+    7,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    5,
+    5,
+    5,
+    5,
+    5,
+    4,
+    4,
+    4,
+    4,
+    4,
+    3,
+    3,
+    3,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "nonzeroShade": 2562,
+  "meanShade": 0.14329358686687133,
+  "places": [
+    {
+      "name": "Redfern Station \u00b7 Lawson Street",
+      "lat": -33.8916059,
+      "lon": 151.1988371,
+      "nodeId": "6124414485"
+    },
+    {
+      "name": "University of Sydney \u00b7 Eastern Avenue",
+      "lat": -33.8877853,
+      "lon": 151.1901403,
+      "nodeId": "579256156"
+    },
+    {
+      "name": "University of Sydney \u00b7 Gate 3",
+      "lat": -33.8889659,
+      "lon": 151.1946344,
+      "nodeId": "3853720447"
+    },
+    {
+      "name": "Victoria Park \u00b7 City Road",
+      "lat": -33.886935,
+      "lon": 151.1936015,
+      "nodeId": "3106348229"
+    },
+    {
+      "name": "Darlington \u00b7 Abercrombie Street",
+      "lat": -33.8911254,
+      "lon": 151.1948111,
+      "nodeId": "9281964393"
+    },
+    {
+      "name": "University Avenue",
+      "lat": -33.8857938,
+      "lon": 151.1900279,
+      "nodeId": "1831874047"
+    }
+  ],
+  "metadata": {
+    "osmDate": "2026-04-08T02:36:24Z",
+    "treeSnapshot": "User project snapshot, 8 April 2026; individual survey dates unknown",
+    "method": "Approximate canopy overlap over a 10 m wide road corridor, sampled at <=1 m longitudinal spacing and 1 m transverse spacing. TreeCanopyNS / 2 gives circular radius. Missing diameters default to 4 m, matching original project. No time-of-day, temperature, shadows or building shade.",
+    "treeCount": 10845,
+    "defaultDiameterCount": 0,
+    "bounds": [
+      -33.9005026,
+      151.1792589,
+      -33.8816545,
+      151.2062125
+    ],
+    "componentCount": 42,
+    "discardedNodes": 263,
+    "excludedWays": {
+      "restricted access": 23,
+      "non-walking road class": 19,
+      "major road without sidewalk": 3,
+      "indoor": 24
+    },
+    "coverageWarning": "City asset register contains park and street trees only; campus and private trees may be absent. Zero means no mapped overlap, not proof of no shade.",
+    "sources": [
+      {
+        "name": "OpenStreetMap contributors",
+        "url": "https://www.openstreetmap.org/copyright",
+        "license": "ODbL 1.0"
+      },
+      {
+        "name": "City of Sydney \u2014 Trees",
+        "url": "https://data.cityofsydney.nsw.gov.au/datasets/cityofsydney::trees/about",
+        "license": "CC BY 4.0",
+        "licenseEvidence": "https://www.arcgis.com/sharing/rest/content/items/15c4713a688a48fcb604fc343118af05?f=json"
+      }
+    ]
+  }
+}

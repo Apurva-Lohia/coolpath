@@ -1,0 +1,13 @@
+.git/
+.openai/
+.vercel/
+data/raw/
+node_modules/
+build/
+*.zip
+*.tar.gz
+.env
+.env.*
+tests/ui-*.png
+__pycache__/
+*.pyc

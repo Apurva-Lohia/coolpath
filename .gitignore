@@ -1,0 +1,15 @@
+data/raw/
+__pycache__/
+*.pyc
+*.tar.gz
+*.zip
+qa/
+node_modules/
+build/
+.vercel/
+.openai/
+.env
+.env.*
+!.env.example
+tests/ui-*.png
+.DS_Store

@@ -11,3 +11,14 @@ build/
 tests/ui-*.png
 __pycache__/
 *.pyc
+
+# Preserved original local project inputs and credential-bearing files
+/cache/
+/sydney_trees.geojson
+/darlington_canopy_2022.tif
+/ingest_map.py
+/tree.py
+/test.py
+/docker-compose.yml
+/plan.md
+/project 1.gdoc

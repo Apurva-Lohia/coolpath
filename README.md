@@ -1,6 +1,6 @@
 # CoolPath — Darlington pilot
 
-A real, map-first walking app completing the original CoolPath project's A* routing intent. Static HTML/CSS/JavaScript; no paid API, secret, database server or fake endpoint. The original Drive files remain unchanged.
+A real, map-first walking app completing the original CoolPath project's A* routing intent. Static HTML/CSS/JavaScript; no paid API, secret, database server or fake endpoint. The app is integrated into the existing CoolPath folder. Original Python ingestion scripts, Docker configuration, plan, source data and cache are preserved locally.
 
 ## Run
 
@@ -37,7 +37,7 @@ Default Redfern Station to Eastern Avenue: approximately 1,102 m shortest / 12.3
 
 ## Data, provenance and licenses
 
-See `data/METHODOLOGY.md`, `data/input-sha256.json`, `data/build-report.json` and `data/tree-license-evidence.json`. Rebuild with `python3 scripts/build_graph.py` after placing the original user-supplied source snapshots in `data/raw/` as described by the script. Raw inputs are intentionally excluded from the repository and deployed app. Original scripts containing local database credentials are not shipped.
+See `data/METHODOLOGY.md`, `data/input-sha256.json`, `data/build-report.json` and `data/tree-license-evidence.json`. Rebuild with `python3 scripts/build_graph.py` after placing the original user-supplied source snapshots in `data/raw/` as described by the script. Raw inputs are intentionally excluded from the repository and deployed app. Original scripts containing local database credentials remain unchanged locally and are excluded from Git and deployment, together with the raw tree inventory, cache, raster and original plan.
 
 - Map/network: © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright . The derived graph is distributed at `dist/data/graph.json` under ODbL 1.0.
 - Tree inventory: City of Sydney, CC BY 4.0, https://data.cityofsydney.nsw.gov.au/datasets/cityofsydney::trees/about . CoolPath transforms canopy widths into estimated circular canopy/corridor overlaps; no endorsement implied.
@@ -45,22 +45,23 @@ See `data/METHODOLOGY.md`, `data/input-sha256.json`, `data/build-report.json` an
 
 ## Hosting and release boundary
 
-The source repository must remain **private in the owner’s personal GitHub account**, not a University of Sydney organization/server. The repository visibility is separate from the Vercel website’s visibility. A public Vercel pilot is authorized; its downloaded client code and public geodata are necessarily visible to website visitors. No private input snapshots or secrets are deployed. The previous owner-private preview is unchanged. Public-scale use needs tile-provider capacity review, fresh geodata, field validation of crossings/access, and accessibility testing. No paid service is enabled.
+The existing personal GitHub repository is https://github.com/Apurva-Lohia/coolpath. This update preserves its history. Local integration and a normal repository update are authorized; no Vercel deployment is performed as part of this step. Repository visibility and website visibility are separate. Original local inputs and credential-bearing scripts are excluded from version control and deployment.
 
-## Verification status (25 October 2026)
+## Verification status (26 October 2026, existing Windows folder)
 
-- PASS: 16 Node tests (11 routing and 5 static checks), including 200 randomized A*/Dijkstra comparisons, all 36 preset origin/destination pairs, real-data zero-heuristic comparison, invalid graph inputs and disconnected graphs.
-- PASS: local asset references, unique HTML IDs, declared basic accessibility semantics, matching deployed/tested graph; these are static checks, not an accessibility audit.
-- PASS: JavaScript syntax checks, Python compile, input checksums, graph geometry/length/shade validation, source secret-pattern scan.
-- PASS: owner-private hosted deployment and private login gate verified by supported cloud browser.
-- NOT RUN: app desktop/mobile runtime rendering, hosted asset/tile loading and browser interaction suite. Shell Chromium could not launch under this execution environment's socket restrictions; its authorized wrapper attempt was blocked by a protected read-only path. The supported cloud browser could not reach local preview and was not signed into ChatGPT for the private hosted app. No visibility or authentication workaround was used. Responsive CSS and flows received static review, not a visual pass.
-- `tests/ui-qa.cjs` is a prepared browser harness, not a passed result. In an authorized local environment, install Playwright separately and run with `BASE_URL=http://localhost:8765 node tests/ui-qa.cjs`. Optional `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` select installed tools. Screenshots are local QA output only.
+- PASS: `npm ci --ignore-scripts --no-audit --no-fund`, `npm run build`, JavaScript syntax checks, and all 16 Node tests (11 routing and 5 static checks).
+- PASS: 200 randomized A*/Dijkstra comparisons, all 36 preset origin/destination pairs, real-data zero-heuristic comparison, malformed input and disconnected-network checks.
+- PASS: Python syntax parsing for all three original Python scripts and `scripts/build_graph.py`, without executing ingestion or accessing the database.
+- PASS: real Chrome desktop (1440 x 1000) and mobile viewport (390 x 844) checks against the app served from this folder. Initial routes and basemap rendered, route selection, preference slider, swap, invalid/same endpoints, map-pick cancellation and About dialog worked; no JavaScript page errors occurred.
+- PASS: mobile viewport had no horizontal overflow; attribution remained visible. Blocking OSM tiles displayed the warning while both local route cards remained available. Desktop and mobile screenshots received visual review.
+- NOT RUN: physical phone testing, actual geolocation, complete map-pick flow, accessibility audit, geodata regeneration, database ingestion, field validation, or Vercel deployment. Viewport emulation is not a physical-device test.
+- Optional browser harness: `tests/ui-qa.cjs`. `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` can select installed tools. Screenshots stay local and are gitignored.
 
-Browser/mobile and field-access validation remain outstanding before this can be described as production-ready navigation. Hosting the pilot does not establish safety or accuracy in the field.
+Canopy overlap is a static proxy, not live shade or a cooling guarantee. This pilot is not safety-validated navigation.
 
 ## Deploy to Vercel
 
-1. Create a **private repository in your personal GitHub account** and push this clean source tree to `main`. Do not use a university organization or enterprise GitHub server.
+1. Use the existing personal repository `Apurva-Lohia/coolpath`; preserve its history. Deployment is a separate action requiring authorization.
 2. In your intended Vercel account, import that repository. Verify the personal GitHub owner and repository before accepting the integration. A private GitHub repository does not require making source public to host the web app.
 3. Use the repository root, framework **Other**, build command `npm run build`, output directory `build`, and install command `npm ci --ignore-scripts --no-audit --no-fund`. These are committed in `vercel.json`; do not override them with a framework preset.
 4. No environment variables, API keys, database, paid add-ons or custom domain are required. Use Vercel’s assigned domain. Check plan eligibility and stop before accepting fees or broadening account grants.

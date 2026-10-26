@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=new URL('../',import.meta.url),html=fs.readFileSync(new URL('dist/index.html',root),'utf8'),app=fs.readFileSync(new URL('dist/app.mjs',root),'utf8'),css=fs.readFileSync(new URL('dist/style.css',root),'utf8');
+test('HTML has unique IDs and all app ID references resolve',()=>{const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(ids.length,new Set(ids).size);for(const [,id] of app.matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.includes(id),`Missing #${id}`);});
+test('All declared local script and stylesheet assets exist',()=>{for(const [,url] of html.matchAll(/(?:src|href)="([^"]+)"/g)){if(url.startsWith('http')||url==='./')continue;assert.ok(fs.existsSync(new URL(`dist/${url}`,root)),url);}assert.ok(fs.existsSync(new URL('dist/data/graph.json',root)));assert.ok(fs.existsSync(new URL('dist/vendor/LICENSE',root)));});
+test('Basic accessibility semantics and responsive layout are declared',()=>{assert.match(html,/<html lang="en"/);assert.match(html,/name="viewport"/);assert.match(html,/aria-live="polite"/);assert.match(html,/aria-label="Starting point"|class="sr-only">Starting point/);assert.match(html,/class="sr-only">Destination/);assert.match(html,/label for="shade"/);assert.match(html,/<dialog id="about"/);assert.match(css,/@media\(max-width:700px\)/);assert.match(css,/:focus-visible/);assert.match(css,/max-height:53dvh/);});
+test('Deployed graph matches tested graph exactly',()=>{assert.deepEqual(fs.readFileSync(new URL('dist/data/graph.json',root)),fs.readFileSync(new URL('data/graph.json',root)));});
+test('No raw inputs or embedded server credentials are in deployed text assets',()=>{function visit(p){for(const e of fs.readdirSync(p,{withFileTypes:true})){const f=path.join(p,e.name);if(e.isDirectory())visit(f);else if(/\.(html|mjs|css|json)$/.test(f)){const s=fs.readFileSync(f,'utf8');assert.doesNotMatch(s,/postgres(?:ql)?:\/\/[^\s]+:[^\s]+@|BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY|art_v2_x_/);}}}visit(fileURLToPath(new URL('dist/',root)));});

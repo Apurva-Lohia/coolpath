@@ -24,3 +24,8 @@ tests/ui-*.png
 /docker-compose.yml
 /plan.md
 /project 1.gdoc
+
+# Local backend environment and private connection files
+.venv/
+.pytest_cache/
+*.log

@@ -1,0 +1,10 @@
+"""Explicit synthetic UI test server. Not the application launcher or a fallback."""
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+import uvicorn
+from backend.app import create_app
+from test_backend import FixtureService
+if __name__=="__main__":
+    print("TEST FIXTURE ONLY: synthetic geometries; no PostGIS connection.")
+    uvicorn.run(create_app(FixtureService()),host="127.0.0.1",port=8766)

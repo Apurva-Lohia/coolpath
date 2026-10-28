@@ -1,0 +1,66 @@
+// Run only against the explicit synthetic FastAPI fixture on 127.0.0.1:8766.
+// This verifies UI -> real FastAPI -> NetworkX, NOT live PostGIS.
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const assert=require('node:assert/strict'),path=require('node:path');
+(async()=>{
+const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});
+try{
+ const context=await browser.newContext({viewport:{width:1440,height:1000},permissions:['geolocation'],geolocation:{latitude:-33.8916059,longitude:151.1988371}});
+ const page=await context.newPage(),errors=[],requests=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ page.on('request',r=>requests.push(new URL(r.url()).pathname));
+ await page.goto('http://127.0.0.1:8766');
+ await page.waitForSelector('.route-card');
+ assert.equal(await page.locator('.route-card').count(),2);
+ await page.screenshot({path:path.join(__dirname,'ui-backend-desktop.png')});
+ await page.locator('[data-route=short]').click();
+ assert.equal(await page.locator('[data-route=short]').getAttribute('aria-pressed'),'true');
+ await page.locator('#shade').fill('4');
+ await page.locator('#shade').dispatchEvent('input');
+ await page.waitForSelector('.route-card');
+ const original=await page.locator('#from').inputValue();
+ await page.locator('#swap').click();
+ await page.waitForSelector('.route-card');
+ assert.equal(await page.locator('#to').inputValue(),original);
+ await page.locator('#from').fill('invalid place');
+ await page.locator('#find-route').click();
+ assert.equal(await page.locator('#results').isVisible(),false);
+ await page.locator('#from').fill(original);
+ await page.locator('#to').fill(original);
+ await page.locator('#find-route').click();
+ await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('same mapped'));
+ assert.equal(await page.locator('#results').isVisible(),false);
+ await page.reload();await page.waitForSelector('.route-card');
+ const points=await page.locator('.map-pin').evaluateAll(nodes=>nodes.map(n=>{const b=n.getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2};}));
+ await page.locator('#pick').click();
+ await page.mouse.click(points[0].x,points[0].y);
+ await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Now tap'));
+ await page.mouse.click(points[1].x,points[1].y);
+ await page.waitForSelector('.route-card');
+ assert.match(await page.locator('#from').inputValue(),/^Start on map/);
+ assert.match(await page.locator('#to').inputValue(),/^Destination on map/);
+ await page.locator('#locate').click();await page.waitForSelector('.route-card');
+ assert.equal(await page.locator('#from').inputValue(),'My location');
+ const outsideContext=await browser.newContext({permissions:['geolocation'],geolocation:{latitude:0,longitude:0}});
+ const outsidePage=await outsideContext.newPage();await outsidePage.goto('http://127.0.0.1:8766');await outsidePage.waitForSelector('.route-card');
+ await outsidePage.locator('#locate').click();
+ await outsidePage.waitForFunction(()=>document.querySelector('#status').textContent.includes('outside'));await outsideContext.close();
+ await page.reload();await page.waitForSelector('.route-card');
+ await page.locator('#about-open').click();assert(await page.locator('#about').isVisible());
+ await page.keyboard.press('Escape');assert(!(await page.locator('#about').isVisible()));
+ await page.setViewportSize({width:390,height:844});await page.waitForTimeout(300);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),390);
+ await page.screenshot({path:path.join(__dirname,'ui-backend-mobile.png')});
+ await page.route('https://tile.openstreetmap.org/**',r=>r.abort());
+ await page.reload();await page.waitForSelector('.route-card');
+ await page.waitForFunction(()=>!document.querySelector('#tile-warning').hidden);
+ await page.route('**/api/routes',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({detail:'PostGIS routing is unavailable. No browser routing fallback is used.'})}));
+ await page.locator('#find-route').click();
+ await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('No browser routing fallback'));
+ assert.equal(await page.locator('#results').isVisible(),false);
+ assert(requests.includes('/api/network')&&requests.includes('/api/routes')&&requests.includes('/api/snap'));
+ assert(!requests.includes('/data/graph.json')&&!requests.includes('/routing.mjs'));
+ assert.deepEqual(errors,[]);
+ console.log('PASS: synthetic FastAPI UI flow, routes, preference, swap, validation, map pick, mocked geolocation, modal, mobile, tile failure, backend failure; no bundled graph requests or page errors.');
+}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

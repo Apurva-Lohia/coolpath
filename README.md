@@ -1,86 +1,72 @@
-# CoolPath — Darlington pilot
+# CoolPath — local FastAPI/PostGIS walking pilot
 
-A real, map-first walking app completing the original CoolPath project's A* routing intent. Static HTML/CSS/JavaScript; no paid API, secret, database server or fake endpoint. The app is integrated into the existing CoolPath folder. Original Python ingestion scripts, Docker configuration, plan, source data and cache are preserved locally.
+The original CoolPath folder contains the existing map UI, FastAPI backend, OSMnx topology, NetworkX A*, and GeoPandas/Shapely canopy processing. The existing database is `sydney_spatial_db` in Docker container `coolpath_db`, exposed at `127.0.0.1:5433`, with PostGIS 3.3.4. The separate PostgreSQL 17 installation is not used.
 
-## Run
+## Launch
 
-Node 20+ for build/tests; Python 3 for the local server:
+With the existing Docker container running, open PowerShell and run:
 
-```sh
-npm ci --ignore-scripts
+```powershell
+& "G:\My Drive\Downloads on Laptop\GeoAI projects\CoolPath\scripts\start-local.ps1"
+```
+
+Enter the database password privately at the masked prompt. The launcher defaults to database `sydney_spatial_db` and user `apurva`, checks schema read-only, then serves http://127.0.0.1:8765/. Keep the terminal open; Ctrl+C stops it. Passwords are held only in process memory/environment, not printed or written to files. Previous environment values are restored on exit.
+
+If private PostgreSQL connection variables are already configured, `npm start` launches the same backend. No credentials are embedded in the edited ingestion/processing scripts. Do not send passwords in chat.
+
+## Original data and topology
+
+The original `darlington_streets` table contains 1,284 records. Original ingestion omitted OSM edge identifiers. `ingest_map.recover_topology` reconstructs the original walking graph offline from the retained place boundary and Overpass cache, following the pinned OSMnx 2.1.1 construction sequence. All 1,284 stored street geometries and lengths uniquely match the 434-node cached graph.
+
+Recovered `u/v/key` are added only to the derived `weighted_streets` table. Routing retains distinct OSM node identities and original directed edges, including the bidirectional walking edges produced by OSMnx. It does not connect nearby or merely crossing streets.
+
+`tree.py` applies the original calculation through `backend/canopy.py`:
+
+1. Project roads and tree points to EPSG:7856.
+2. Buffer every tree by `TreeCanopyNS.fillna(4) / 2` metres.
+3. Buffer roads by 5 metres.
+4. Union all tree crowns, then calculate exact Shapely intersection area divided by road-buffer area × 100.
+5. Return geometries to EPSG:4326.
+
+No tree filtering, radius cap, sampling, or changed corridor width is used. Canopy coverage is a static proxy, not live shade or a cooling guarantee.
+
+Both original scripts now refuse to replace existing tables. `tree.py` creates `weighted_streets` only when absent; it does not change `darlington_streets`. Do not rerun ingestion or processing to overwrite existing results.
+
+## Backend and map
+
+FastAPI reads persisted `weighted_streets` in a read-only transaction. OSMnx `graph_from_gdfs` restores its graph and NetworkX A* minimizes:
+
+`length × (1 + preference × (1 − shade_pct / 100))`
+
+Zero preference gives shortest distance. The heuristic is conservatively scaled to remain admissible. The graph is cached in memory; restart FastAPI after an authorized data change. Every API operation checks database availability. There is no bundled-JSON routing fallback.
+
+The existing map calls `/api/network`, `/api/snap`, and `/api/routes`. Route responses include GeoJSON and the map's existing metrics. FastAPI serves only interface assets; historical browser-routing files are not active routes.
+
+Coverage is limited to the original Darlington graph. Presets outside that graph may be rejected by the retained 100 m snap limit. Routes are not safety-validated, accessibility-certified, or live turn-by-turn navigation.
+
+## Checks
+
+```powershell
+Set-Location "G:\My Drive\Downloads on Laptop\GeoAI projects\CoolPath"
+.\.venv\Scripts\python.exe -m pytest tests/test_backend.py tests/test_live_postgis.py -q
 npm run build
-npm start
 ```
 
-Open http://localhost:8765. There are no runtime or build npm dependencies. `npm ci` validates the empty dependency lockfile; the build runs checks and copies only whitelisted public assets into `build/`. Leaflet 1.9.4 is vendored; OpenStreetMap supplies online map tiles. All route calculations and the bounded graph run in-browser. If tile loading fails, the local paths remain available. Internet is required for the initial hosted page and optional basemap; this is not an offline-navigation product.
+The opt-in SQLAlchemy/PostGIS test requires private connection configuration and `COOLPATH_LIVE_TEST=1`; a skipped test is not a live-database pass. Browser fixture tests explicitly use synthetic geometry. Eleven retained Node routing tests exercise historical browser code, while static tests check the current UI's FastAPI contract.
 
-## What works
+Current run verification is recorded in the task result, distinguishing live database processing from private-password-dependent production backend/browser checks.
 
-- Search six preset destinations and named streets, choose two points on the map, swap start/end, opt into geolocation.
-- Real A* shortest-path comparison versus canopy-penalized routing, responsive mobile bottom sheet, route geometry, estimated distance/time and named-path steps.
-- Client-side route calculation; selected location is not saved. External OSM tile requests use normal browser caching and attribution.
-- 6,315 nodes and 7,206 segments in the largest connected component of the supplied April 2026 OSM walking snapshot.
+## Preserved inputs and scope
 
-## Algorithm
+Original `plan.md`, `test.py`, `docker-compose.yml`, tree inventory, canopy image, and caches are preserved. `ingest_map.py` and `tree.py` are edited in place as requested. No separate project, new dependencies, database migration, Docker repair, Git push, or deployment is involved. Historical static artifacts remain unused by backend routing.
 
-Each edge costs `length * (1 + preference * (1 - canopy_fraction))`. Preferences range from 0 to 4. The heuristic is straight-line haversine distance, reduced by the minimum ratio of edge length to endpoint distance so it stays admissible even with rounded edge lengths. This is **A* with canopy-weighted edge costs**, not an inflated-heuristic Weighted A* search. A binary heap manages the open set. Tests compare the result to independent Dijkstra and zero-heuristic search.
+Data attribution: OpenStreetMap contributors (ODbL 1.0), City of Sydney tree inventory (CC BY 4.0), and Leaflet (BSD 2-Clause).
 
-`dist/routing.mjs` exposes `buildGraph`, `nearestNode`, `route`, and `haversine`. The routing module also accepts explicitly directed edges. This dataset uses bidirectional walking edges; motor vehicle oneway flags are not treated as walking restrictions.
+## Verified restoration results
 
-## Honest limitations
-
-This is a bounded planning pilot, not an all-Sydney navigation service. The original FastAPI/Streamlit/PostGIS deployment plan is replaced here by a browser-only delivery layer to make the pilot usable without infrastructure; the canopy-aware A* intent and real source data are retained. There is no server API implemented or claimed.
-
-“Canopy estimate” is **length-weighted area overlap of modeled tree crowns with a 10 m wide path corridor**, not a measured fraction of a pedestrian's walk in shade. Crown circles come from the City of Sydney street/park tree inventory. Trees on campus/private property may be absent, zero overlap is not proof of no shade, and tree age is unknown. There is no weather, heat measurement, solar geometry, building shade or live shadow model. The file called `darlington_canopy_2022.tif` is a PNG without georeferencing and is excluded.
-
-Default Redfern Station to Eastern Avenue: approximately 1,102 m shortest / 12.3% corridor canopy vs 1,108 m tree-aware / 13.5% at preference 2. The improvement is modest, not a promise of meaningful cooling. Time assumes 80 m/min (4.8 km/h), without waits. Routes snap to network nodes within 100 m, not exact doorstep/edge access. Selected presets are mapped path locations, not guaranteed building entrances. Mapped access/sidewalks may be incomplete. Steps remain in the network: **not wheelchair or step-free routing**. Always check signs, crossings and local access. Not live turn-by-turn navigation.
-
-## Data, provenance and licenses
-
-See `data/METHODOLOGY.md`, `data/input-sha256.json`, `data/build-report.json` and `data/tree-license-evidence.json`. Rebuild with `python3 scripts/build_graph.py` after placing the original user-supplied source snapshots in `data/raw/` as described by the script. Raw inputs are intentionally excluded from the repository and deployed app. Original scripts containing local database credentials remain unchanged locally and are excluded from Git and deployment, together with the raw tree inventory, cache, raster and original plan.
-
-- Map/network: © OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright . The derived graph is distributed at `dist/data/graph.json` under ODbL 1.0.
-- Tree inventory: City of Sydney, CC BY 4.0, https://data.cityofsydney.nsw.gov.au/datasets/cityofsydney::trees/about . CoolPath transforms canopy widths into estimated circular canopy/corridor overlaps; no endorsement implied.
-- Leaflet 1.9.4: BSD 2-Clause, `dist/vendor/LICENSE`.
-
-## Hosting and release boundary
-
-The existing personal GitHub repository is https://github.com/Apurva-Lohia/coolpath. This update preserves its history. Local integration and a normal repository update are authorized; no Vercel deployment is performed as part of this step. Repository visibility and website visibility are separate. Original local inputs and credential-bearing scripts are excluded from version control and deployment.
-
-## Verification status (26 October 2026, existing Windows folder)
-
-- PASS: `npm ci --ignore-scripts --no-audit --no-fund`, `npm run build`, JavaScript syntax checks, and all 16 Node tests (11 routing and 5 static checks).
-- PASS: 200 randomized A*/Dijkstra comparisons, all 36 preset origin/destination pairs, real-data zero-heuristic comparison, malformed input and disconnected-network checks.
-- PASS: Python syntax parsing for all three original Python scripts and `scripts/build_graph.py`, without executing ingestion or accessing the database.
-- PASS: real Chrome desktop (1440 x 1000) and mobile viewport (390 x 844) checks against the app served from this folder. Initial routes and basemap rendered, route selection, preference slider, swap, invalid/same endpoints, map-pick cancellation and About dialog worked; no JavaScript page errors occurred.
-- PASS: mobile viewport had no horizontal overflow; attribution remained visible. Blocking OSM tiles displayed the warning while both local route cards remained available. Desktop and mobile screenshots received visual review.
-- NOT RUN: physical phone testing, actual geolocation, complete map-pick flow, accessibility audit, geodata regeneration, database ingestion, field validation, or Vercel deployment. Viewport emulation is not a physical-device test.
-- Optional browser harness: `tests/ui-qa.cjs`. `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` can select installed tools. Screenshots stay local and are gitignored.
-
-Canopy overlap is a static proxy, not live shade or a cooling guarantee. This pilot is not safety-validated navigation.
-
-## Deploy to Vercel
-
-1. Use the existing personal repository `Apurva-Lohia/coolpath`; preserve its history. Deployment is a separate action requiring authorization.
-2. In your intended Vercel account, import that repository. Verify the personal GitHub owner and repository before accepting the integration. A private GitHub repository does not require making source public to host the web app.
-3. Use the repository root, framework **Other**, build command `npm run build`, output directory `build`, and install command `npm ci --ignore-scripts --no-audit --no-fund`. These are committed in `vercel.json`; do not override them with a framework preset.
-4. No environment variables, API keys, database, paid add-ons or custom domain are required. Use Vercel’s assigned domain. Check plan eligibility and stop before accepting fees or broadening account grants.
-5. Deploy, wait for a successful deployment, then inspect the returned domain and verify the initial map, graph asset, both routes, swaps, errors, mobile layout and attribution in a browser. Do not infer a successful deployment from a project creation response.
-
-Builds run all 16 tests before producing assets. Test locally with `python3 -m http.server 8765 --directory build`. No catch-all route rewrite is used: missing assets should return 404 rather than HTML disguised as JSON. Referrer policy preserves the origin referrer required by the OpenStreetMap tile service.
-
-Configuration references: [Vercel project configuration](https://vercel.com/docs/project-configuration/vercel-json), [Git deployment](https://vercel.com/docs/git).
-
-### Repository layout
-
-```text
-dist/                 Editable browser app and bundled public data
-data/                 Processed graph, methodology and license evidence
-scripts/build.mjs     Deterministic static build, no network access
-scripts/build_graph.py  Optional geodata regeneration (original inputs required)
-tests/                Routing, static checks, optional browser harness
-vercel.json           Vercel static build configuration
-build/                Generated deployment output (gitignored)
-```
-
-Regenerating the graph is separate from building the website. Place the original walking-network Overpass snapshot at `data/raw/osm1.json` and original tree inventory at `data/raw/trees.geojson`, run `python3 scripts/build_graph.py`, review the result, then copy `data/graph.json` to `dist/data/graph.json`. Raw files are deliberately excluded from Git and deployment; ordinary website builds use the checked-in derived graph and need no original private files.
+- Created only `public.weighted_streets`: 1,284 rows, original `u/v/key`, mean canopy overlap 10.0047208665%, range 0–73.3796992324%. Exact calculation took about 299 seconds on this run.
+- Confirmed `darlington_streets` rows, attributes and geometry were unchanged before/after creation. Verified original plan, tree inventory, canopy image, test.py, Docker Compose and all three cache hashes unchanged.
+- Passed 200 A*/Dijkstra comparisons on the real 434-node/1,284-edge network, nine backend tests, 16 Node checks, build and Python/PowerShell syntax checks.
+- Passed Chrome desktop/mobile tests with synthetic data, then with real persisted PostGIS data loaded via existing container-local authentication into a test FastAPI service. Valid Gate 3/Abercrombie routes, preference changes and swaps work. Temporary test servers were stopped.
+- Production Windows backend SQLAlchemy authentication and its complete live browser connection still require a private launcher login; they are not claimed as verified. No password was retrieved or persisted.
+- Coverage decision remains: Redfern preset is 203.34 m and Eastern Avenue 161.86 m from the original graph, beyond the existing 100 m snap limit. Gate 3 (5.15 m) and Abercrombie Street (57.30 m) work within existing coverage. No network expansion, preset relocation or snap-limit change has been made.
